@@ -1,12 +1,27 @@
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 
 /**
- * Use Case 4: Room Search & Availability Check
- * Goal: Filter results to show only available rooms (Validation Logic)
- * and ensure the search process doesn't modify the system state.
- * @version 4.0
+ * Use Case 5: Booking Request (First-Come-First-Served)
+ * Goal: Handle multiple booking requests fairly using a Queue (FIFO).
+ * @version 5.0
  */
+
+// UC5: Represents a guest's intent to book a room
+class Reservation {
+    private String guestName;
+    private String roomType;
+
+    public Reservation(String guestName, String roomType) {
+        this.guestName = guestName;
+        this.roomType = roomType;
+    }
+
+    public String getGuestName() { return guestName; }
+    public String getRoomType() { return roomType; }
+}
 
 abstract class Room {
     private String type;
@@ -31,39 +46,49 @@ class DoubleRoom extends Room { public DoubleRoom() { super("Double Room", 2, 18
 class SuiteRoom extends Room { public SuiteRoom() { super("Suite Room", 4, 350.0); } }
 
 public class BookMyStayApp {
-    // UC4: Inventory as the "State Holder"
     private static Map<String, Integer> inventory = new HashMap<>();
 
+    // UC5: Booking Request Queue (FIFO)
+    // We use LinkedList because it implements the Queue interface
+    private static Queue<Reservation> bookingQueue = new LinkedList<>();
+
     public static void main(String[] args) {
-        // Step 1: Initialize Inventory (Simulating current hotel state)
+        // Step 1: Initialize Inventory
         inventory.put("Single Room", 10);
-        inventory.put("Double Room", 0); // UC4: This should be hidden from the guest
+        inventory.put("Double Room", 0);
         inventory.put("Suite Room", 3);
 
-        System.out.println("--- Welcome to Book My Stay App v4.0 ---");
-        System.out.println("Guest is searching for available rooms...\n");
+        System.out.println("--- Welcome to Book My Stay App v5.0 ---");
 
-        // Step 2: Read-Only Access
-        // We use the inventory map to check availability without modifying it.
-        Room[] rooms = { new SingleRoom(), new DoubleRoom(), new SuiteRoom() };
+        // Step 2: Simulate Guests Submitting Requests (The "Arrival" order)
+        System.out.println("Receiving booking requests...");
 
+        bookingQueue.add(new Reservation("Alice", "Single Room"));
+        bookingQueue.add(new Reservation("Bob", "Suite Room"));
+        bookingQueue.add(new Reservation("Charlie", "Single Room"));
+
+        System.out.println("Requests added to the queue in arrival order.\n");
+
+        // Step 3: Display the Queue (FIFO Principle)
         System.out.println("========================================");
-        System.out.println("        AVAILABLE ROOM SEARCH          ");
+        System.out.println("        CURRENT BOOKING QUEUE           ");
         System.out.println("========================================");
 
-        for (Room r : rooms) {
-            int availableCount = inventory.getOrDefault(r.getType(), 0);
-
-            // Step 3: Validation Logic (The core change for UC4)
-            // Only display the room if it is actually available (count > 0)
-            if (availableCount > 0) {
-                r.displayDetails();
-                System.out.println(" | Available: " + availableCount);
+        if (bookingQueue.isEmpty()) {
+            System.out.println("No pending requests.");
+        } else {
+            int position = 1;
+            for (Reservation res : bookingQueue) {
+                System.out.println(position + ". Guest: " + res.getGuestName() +
+                        " | Requested: " + res.getRoomType());
+                position++;
             }
         }
+
         System.out.println("========================================\n");
 
-        System.out.println("Search completed successfully.");
-        System.out.println("Note: Unavailable rooms were filtered out automatically.");
+        // UC5 Requirement: No inventory mutation occurs at this stage.
+        System.out.println("Status: Requests are queued and waiting for processing.");
+        System.out.println("Note: Inventory has not been updated yet.");
     }
 }
