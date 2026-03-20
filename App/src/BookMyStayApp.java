@@ -1,26 +1,15 @@
 import java.util.*;
 
 /**
- * Use Case 8: Booking History & Reporting
- * Goal: Maintain a historical record of confirmed bookings and generate reports.
- * @version 8.0
+ * Use Case 9: Error Handling & Validation
+ * Goal: Strengthen system reliability by introducing structured validation and custom exceptions.
+ * @version 9.0
  */
 
-class Service {
-    private String name;
-    private double price;
-
-    public Service(String name, double price) {
-        this.name = name;
-        this.price = price;
-    }
-
-    public String getName() { return name; }
-    public double getPrice() { return price; }
-
-    @Override
-    public String toString() {
-        return name + " ($" + price + ")";
+// UC9: Custom Exception for Invalid Booking Scenarios
+class InvalidBookingException extends Exception {
+    public InvalidBookingException(String message) {
+        super(message);
     }
 }
 
@@ -44,70 +33,81 @@ public class BookMyStayApp {
     private static Map<String, Integer> inventory = new HashMap<>();
     private static Queue<Reservation> bookingQueue = new LinkedList<>();
     private static Map<String, Set<String>> allocatedRooms = new HashMap<>();
-    private static Map<String, List<Service>> addOnServices = new HashMap<>();
-
-    // UC8: List to maintain a historical record of confirmed bookings
     private static List<Reservation> bookingHistory = new ArrayList<>();
 
     public static void main(String[] args) {
         // Step 1: Initialize Inventory
         inventory.put("Single Room", 10);
         inventory.put("Double Room", 2);
-        inventory.put("Suite Room", 3);
+        inventory.put("Suite Room", 0); // Setting to 0 to test Out of Stock validation
 
         allocatedRooms.put("Single Room", new HashSet<>());
         allocatedRooms.put("Double Room", new HashSet<>());
         allocatedRooms.put("Suite Room", new HashSet<>());
 
-        System.out.println("--- Welcome to Book My Stay App v8.0 ---");
+        System.out.println("--- Welcome to Book My Stay App v9.0 ---");
 
-        // Step 2: Queueing Requests (Using names from UC8 documentation)
+        // Step 2: Queueing Requests
         bookingQueue.add(new Reservation("Abhi", "Single Room"));
-        bookingQueue.add(new Reservation("Subha", "Double Room"));
-        bookingQueue.add(new Reservation("Vanmathi", "Suite Room"));
+        bookingQueue.add(new Reservation("Subha", "Penthouse")); // UC9: Invalid Room Type
+        bookingQueue.add(new Reservation("Vanmathi", "Suite Room")); // UC9: Out of Stock
 
         System.out.println("Processing " + bookingQueue.size() + " queued requests...\n");
 
-        // Step 3: Process Queue and Update History
+        // Step 3: Process Queue with UC9 Validation & Error Handling
         while (!bookingQueue.isEmpty()) {
             Reservation request = bookingQueue.poll();
-            String type = request.getRoomType();
-            int currentStock = inventory.getOrDefault(type, 0);
 
-            if (currentStock > 0) {
+            try {
+                // UC9: Fail-Fast Validation
+                validateBooking(request);
+
+                // If validation passes, proceed with state changes
+                String type = request.getRoomType();
                 String roomID = generateRoomID(type);
-                allocatedRooms.get(type).add(roomID);
-                inventory.put(type, currentStock - 1);
 
-                // UC8: Add confirmed reservation to history
+                allocatedRooms.get(type).add(roomID);
+                inventory.put(type, inventory.get(type) - 1);
                 bookingHistory.add(request);
 
-                System.out.println("Booking Confirmed for: " + request.getGuestName());
-            } else {
-                System.out.println("Booking Rejected for: " + request.getGuestName());
+                System.out.println("SUCCESS: Booking Confirmed for " + request.getGuestName());
+
+            } catch (InvalidBookingException e) {
+                // UC9: Graceful Failure Handling
+                System.out.println("REJECTED: " + request.getGuestName() + " - " + e.getMessage());
             }
         }
 
-        // Step 4: UC8 - Generate Reporting
         generateBookingHistoryReport();
     }
 
     /**
-     * UC8: Reporting Service - Displays the audit trail of confirmed bookings.
+     * UC9: Validator Method - Checks constraints before system state is modified.
      */
+    private static void validateBooking(Reservation res) throws InvalidBookingException {
+        String type = res.getRoomType();
+
+        // 1. Validate Room Type Existence
+        if (!inventory.containsKey(type)) {
+            throw new InvalidBookingException("Invalid Room Type: " + type);
+        }
+
+        // 2. Prevent Negative Inventory (Guard System State)
+        if (inventory.get(type) <= 0) {
+            throw new InvalidBookingException("Room Type '" + type + "' is currently out of stock.");
+        }
+    }
+
     private static void generateBookingHistoryReport() {
-        System.out.println("\n--- Booking History and Reporting ---");
-        System.out.println("\nBooking History Report");
-
+        System.out.println("\n--- Final Booking Audit Report ---");
         if (bookingHistory.isEmpty()) {
-            System.out.println("No confirmed bookings to show.");
-            return;
+            System.out.println("No confirmed bookings.");
+        } else {
+            for (Reservation res : bookingHistory) {
+                System.out.println("Confirmed -> Guest: " + res.getGuestName() + " | Room: " + res.getRoomType());
+            }
         }
-
-        for (Reservation res : bookingHistory) {
-            System.out.println("Guest: " + res.getGuestName() + ", Room Type: " + res.getRoomType());
-        }
-        System.out.println("--------------------------------------");
+        System.out.println("----------------------------------");
     }
 
     private static String generateRoomID(String type) {
