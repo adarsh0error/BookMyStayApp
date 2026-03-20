@@ -2,10 +2,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Use Case 3: Centralized Room Inventory Management
- * This version refactors static variables into a HashMap collection.
- * * @author Developer
- * @version 3.0
+ * Use Case 4: Room Search & Availability Check
+ * Goal: Filter results to show only available rooms (Validation Logic)
+ * and ensure the search process doesn't modify the system state.
+ * @version 4.0
  */
 
 abstract class Room {
@@ -19,12 +19,10 @@ abstract class Room {
         this.price = price;
     }
 
-    public String getType() {
-        return type;
-    }
+    public String getType() { return type; }
 
     public void displayDetails() {
-        System.out.printf("%-15s | Beds: %d | Price: $%.2f%n", type, beds, price);
+        System.out.printf("%-15s | Beds: %d | Price: $%.2f", type, beds, price);
     }
 }
 
@@ -33,37 +31,39 @@ class DoubleRoom extends Room { public DoubleRoom() { super("Double Room", 2, 18
 class SuiteRoom extends Room { public SuiteRoom() { super("Suite Room", 4, 350.0); } }
 
 public class BookMyStayApp {
-    // UC3: Centralized Inventory using HashMap
+    // UC4: Inventory as the "State Holder"
     private static Map<String, Integer> inventory = new HashMap<>();
 
     public static void main(String[] args) {
-        // Step 1: Initialize Centralized Inventory
+        // Step 1: Initialize Inventory (Simulating current hotel state)
         inventory.put("Single Room", 10);
-        inventory.put("Double Room", 7);
+        inventory.put("Double Room", 0); // UC4: This should be hidden from the guest
         inventory.put("Suite Room", 3);
 
-        System.out.println("--- Welcome to Book My Stay App v3.0 ---");
+        System.out.println("--- Welcome to Book My Stay App v4.0 ---");
+        System.out.println("Guest is searching for available rooms...\n");
 
-        // Step 2: Display Centralized Inventory Status (UC3 Specific Format)
-        System.out.println("\n========================================");
-        System.out.println("      CENTRALIZED INVENTORY STATUS      ");
+        // Step 2: Read-Only Access
+        // We use the inventory map to check availability without modifying it.
+        Room[] rooms = { new SingleRoom(), new DoubleRoom(), new SuiteRoom() };
+
         System.out.println("========================================");
-        for (Map.Entry<String, Integer> entry : inventory.entrySet()) {
-            System.out.println(entry.getKey() + " Count: " + entry.getValue());
+        System.out.println("        AVAILABLE ROOM SEARCH          ");
+        System.out.println("========================================");
+
+        for (Room r : rooms) {
+            int availableCount = inventory.getOrDefault(r.getType(), 0);
+
+            // Step 3: Validation Logic (The core change for UC4)
+            // Only display the room if it is actually available (count > 0)
+            if (availableCount > 0) {
+                r.displayDetails();
+                System.out.println(" | Available: " + availableCount);
+            }
         }
         System.out.println("========================================\n");
 
-        // Step 3: Display Detailed Room Information
-        System.out.println("Detailed Room Specifications:");
-        Room[] rooms = { new SingleRoom(), new DoubleRoom(), new SuiteRoom() };
-
-        for (Room r : rooms) {
-            r.displayDetails();
-            // Fetch availability from the centralized map
-            int available = inventory.getOrDefault(r.getType(), 0);
-            System.out.println("Current Availability: " + available + "\n");
-        }
-
-        System.out.println("Inventory synchronized successfully.");
+        System.out.println("Search completed successfully.");
+        System.out.println("Note: Unavailable rooms were filtered out automatically.");
     }
 }
