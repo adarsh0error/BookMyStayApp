@@ -1,9 +1,9 @@
 import java.util.*;
 
 /**
- * Use Case 7: Add-On Service Selection
- * Goal: Support optional services and calculate costs without modifying core logic.
- * @version 7.0
+ * Use Case 8: Booking History & Reporting
+ * Goal: Maintain a historical record of confirmed bookings and generate reports.
+ * @version 8.0
  */
 
 class Service {
@@ -44,47 +44,34 @@ public class BookMyStayApp {
     private static Map<String, Integer> inventory = new HashMap<>();
     private static Queue<Reservation> bookingQueue = new LinkedList<>();
     private static Map<String, Set<String>> allocatedRooms = new HashMap<>();
-
-    // UC7: Map Reservation ID to a List of Add-On Services
     private static Map<String, List<Service>> addOnServices = new HashMap<>();
 
+    // UC8: List to maintain a historical record of confirmed bookings
+    private static List<Reservation> bookingHistory = new ArrayList<>();
+
     public static void main(String[] args) {
-        // Step 1: Initialize Inventory (UC6)
+        // Step 1: Initialize Inventory
         inventory.put("Single Room", 10);
-        inventory.put("Double Room", 0);
+        inventory.put("Double Room", 2);
         inventory.put("Suite Room", 3);
 
         allocatedRooms.put("Single Room", new HashSet<>());
         allocatedRooms.put("Double Room", new HashSet<>());
         allocatedRooms.put("Suite Room", new HashSet<>());
 
-        System.out.println("--- Welcome to Book My Stay App v7.0 ---");
+        System.out.println("--- Welcome to Book My Stay App v8.0 ---");
 
-        // Step 2: Queueing Requests
-        Reservation res1 = new Reservation("Alice", "Single Room");
-        Reservation res2 = new Reservation("Bob", "Suite Room");
-
-        bookingQueue.add(res1);
-        bookingQueue.add(res2);
-        bookingQueue.add(new Reservation("Charlie", "Single Room"));
-
-        // Step 3: UC7 - Guest selects Add-On Services
-        addServiceToReservation(res1.getReservationID(), new Service("Breakfast", 15.0));
-        addServiceToReservation(res1.getReservationID(), new Service("Late Checkout", 20.0));
-        addServiceToReservation(res2.getReservationID(), new Service("Spa Treatment", 50.0));
+        // Step 2: Queueing Requests (Using names from UC8 documentation)
+        bookingQueue.add(new Reservation("Abhi", "Single Room"));
+        bookingQueue.add(new Reservation("Subha", "Double Room"));
+        bookingQueue.add(new Reservation("Vanmathi", "Suite Room"));
 
         System.out.println("Processing " + bookingQueue.size() + " queued requests...\n");
 
-        // Step 4: Process Queue and Allocate Rooms
-        System.out.println("====================================================================");
-        System.out.printf("%-12s | %-8s | %-10s | %-10s | %-10s%n",
-                "RES ID", "STATUS", "GUEST", "ROOM ID", "ADD-ONS COST");
-        System.out.println("--------------------------------------------------------------------");
-
+        // Step 3: Process Queue and Update History
         while (!bookingQueue.isEmpty()) {
             Reservation request = bookingQueue.poll();
             String type = request.getRoomType();
-            String resID = request.getReservationID();
             int currentStock = inventory.getOrDefault(type, 0);
 
             if (currentStock > 0) {
@@ -92,43 +79,35 @@ public class BookMyStayApp {
                 allocatedRooms.get(type).add(roomID);
                 inventory.put(type, currentStock - 1);
 
-                // UC7: Calculate total cost for services
-                double serviceTotal = calculateServiceCost(resID);
+                // UC8: Add confirmed reservation to history
+                bookingHistory.add(request);
 
-                System.out.printf("%-12s | %-8s | %-10s | %-10s | $%-10.2f%n",
-                        resID, "SUCCESS", request.getGuestName(), roomID, serviceTotal);
-
-                // Print specific services if any exist
-                if (addOnServices.containsKey(resID)) {
-                    System.out.println("   ㄴ Services: " + addOnServices.get(resID));
-                }
+                System.out.println("Booking Confirmed for: " + request.getGuestName());
             } else {
-                System.out.printf("%-12s | %-8s | %-10s | %-10s | %-10s%n",
-                        resID, "REJECTED", request.getGuestName(), "N/A", "N/A");
+                System.out.println("Booking Rejected for: " + request.getGuestName());
             }
         }
-        System.out.println("====================================================================\n");
+
+        // Step 4: UC8 - Generate Reporting
+        generateBookingHistoryReport();
     }
 
     /**
-     * UC7: Adds a service to the reservation mapping.
+     * UC8: Reporting Service - Displays the audit trail of confirmed bookings.
      */
-    private static void addServiceToReservation(String resID, Service service) {
-        addOnServices.computeIfAbsent(resID, k -> new ArrayList<>()).add(service);
-    }
+    private static void generateBookingHistoryReport() {
+        System.out.println("\n--- Booking History and Reporting ---");
+        System.out.println("\nBooking History Report");
 
-    /**
-     * UC7: Iterates through the list of services for a reservation to sum the price.
-     */
-    private static double calculateServiceCost(String resID) {
-        List<Service> services = addOnServices.get(resID);
-        if (services == null) return 0.0;
-
-        double total = 0;
-        for (Service s : services) {
-            total += s.getPrice();
+        if (bookingHistory.isEmpty()) {
+            System.out.println("No confirmed bookings to show.");
+            return;
         }
-        return total;
+
+        for (Reservation res : bookingHistory) {
+            System.out.println("Guest: " + res.getGuestName() + ", Room Type: " + res.getRoomType());
+        }
+        System.out.println("--------------------------------------");
     }
 
     private static String generateRoomID(String type) {
